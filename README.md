@@ -1,7 +1,7 @@
 # clock-cal
 An analog clock & calendar
 
-![screenshot](./image-src/clock-cal.png)
+<img src="./image-src/clock-cal.png" alt="screenshot" width="128" height="auto">
 
 Copyright (c) 2024 Paul Sobolik
 
