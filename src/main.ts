@@ -138,15 +138,15 @@ class Clock {
 
   renderMonthHand(dateTime: Date, ctx: CanvasRenderingContext2D) {
     const ticks = DateUtil.daysInYear(dateTime);
-    const adjust = DateUtil.daysInYearToDate(new Date(dateTime.getFullYear(), 2, 1));
+    const adjust = DateUtil.daysInYearToDate(new Date(dateTime.getFullYear(), 3, 1));
     const month = (DateUtil.daysInYearToDate(dateTime) - adjust) % ticks;
     const angle = (this.circleInRadians * month) / ticks;
 
     const bottom = this.monthRadius;
-    const bl_x = bottom * Math.cos(angle + .03);
-    const bl_y = bottom * Math.sin(angle + .03);
-    const br_x = bottom * Math.cos(angle - .03);
-    const br_y = bottom * Math.sin(angle - .03);
+    const bl_x = bottom * Math.cos(angle + .015);
+    const bl_y = bottom * Math.sin(angle + .015);
+    const br_x = bottom * Math.cos(angle - .015);
+    const br_y = bottom * Math.sin(angle - .015);
 
     const top = bottom + ((this.monthFaceSize * 3) / 4);
     const t_x = top * Math.cos(angle);
@@ -167,15 +167,15 @@ class Clock {
     const ticks = DateUtil.daysInMonth(dateTime) * hoursInDay;
     const adjust = ticks / 4;
 
-    let dateHour = (dateTime.getDate() * hoursInDay) + dateTime.getHours();
-    dateHour = (dateHour - adjust) % ticks;
+    let dateHour = ((dateTime.getDate() - 1) * hoursInDay) + dateTime.getHours();
+    dateHour = ((dateHour - adjust) % ticks);
     const angle = (this.circleInRadians * dateHour) / ticks;
 
     const bottom = this.dayRadius;
-    const bl_x = bottom * Math.cos(angle + .03);
-    const bl_y = bottom * Math.sin(angle + .03);
-    const br_x = bottom * Math.cos(angle - .03);
-    const br_y = bottom * Math.sin(angle - .03);
+    const bl_x = bottom * Math.cos(angle + .02);
+    const bl_y = bottom * Math.sin(angle + .02);
+    const br_x = bottom * Math.cos(angle - .02);
+    const br_y = bottom * Math.sin(angle - .02);
 
     const top = bottom + ((this.dayFaceSize * 3) / 4);
     const t_x = top * Math.cos(angle);
@@ -318,7 +318,7 @@ class Clock {
       ticks += daysInMonth;
       daysPerMonth.push(daysInMonth);
     }
-    const adjust = DateUtil.daysInYearToDate(new Date(dateTime.getFullYear(), 2, 1));
+    const adjust = DateUtil.daysInYearToDate(new Date(dateTime.getFullYear(), 3, 1));
     const labelDistance = (this.monthRadius + (this.monthFaceSize / 1.8));
     const pipDistance = (this.monthRadius + (this.monthFaceSize / 4.5));
 
@@ -345,7 +345,9 @@ class Clock {
         if (day == 0) {
           this.fillCircle(ctx, xPip, yPip, this.monthBigPipSize);
           ctx.translate(xLabel, yLabel);
-          this.renderCentered(months[month], 0, 0);
+          let label = months[month];
+          if (month == 0) label += ` ${dateTime.getFullYear().toString()}`;
+          this.renderCentered(label, 0, 0);
         } else {
           this.fillCircle(ctx, xPip, yPip, this.monthLittlePipSize);
         }
@@ -358,17 +360,19 @@ class Clock {
   renderDayFace(dateTime: Date, ctx: CanvasRenderingContext2D) {
     const daysInCurrentMonth = DateUtil.daysInMonth(dateTime);
 
+    const ticks = daysInCurrentMonth * 4;
+    const adjust = ticks / 4;
+    const pipDistance = this.dayRadius + this.dayFaceSize / 3.5;
+    const labelDistance = this.dayRadius + this.dayFaceSize / 1.6;
+
     ctx.save();
+
     ctx.lineWidth = this.borderSize;
     ctx.strokeStyle = this.dayBorderColor;
     this.strokeCircle(ctx, 0, 0, this.dayRadius);
 
     ctx.fillStyle = this.dayPipColor;
     ctx.font = this.dayFont;
-    const ticks = daysInCurrentMonth * 4;
-    const adjust = (ticks / 4);
-    const pipDistance = this.dayRadius + (this.dayFaceSize / 1.7);
-    const labelDistance = this.dayRadius + (this.dayFaceSize / 3.5);
 
     for (let n = 0; n < ticks; ++n) {
       const tick = (n - adjust) % ticks;
@@ -385,8 +389,7 @@ class Clock {
       } else {
         this.fillCircle(ctx, xPip, yPip, this.dayBigPipSize);
         ctx.translate(xLabel, yLabel);
-        const datex = Math.floor(n / 4);
-        const date = datex == 0 ? daysInCurrentMonth : datex;
+        const date = Math.floor(n / 4) + 1;
         this.renderCentered(date.toString(), 0, 0);
       }
       ctx.restore();
