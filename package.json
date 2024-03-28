@@ -1,0 +1,26 @@
+{
+  "name": "clock-cal",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "author": {
+    "name": "Paul Sobolik",
+    "email": "psobolik@zoho.com"
+  },
+  "description": "An analog clock & calendar",
+  "license": "MIT",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "tauri": "tauri"
+  },
+  "dependencies": {
+    "@tauri-apps/api": "^1.5.3"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^1.5.11",
+    "typescript": "^5.4.3",
+    "vite": "^5.2.6"
+  }
+}
