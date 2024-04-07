@@ -25,4 +25,4 @@ Except to run the app on the desktop, this program doesn't use Rust at all, so i
 ```
 > pnpm tauri build
 ```
-This command compiles the TypeScript and builds the web site with `vite` and the executable with `tauri`. The processed web site is placed in `.\dist`. The exeutable is placed in `.\src-tauri\release` and the installers are placed in `.\src-tauri\target\release\bundle`.
+This command compiles the TypeScript and builds the website with `vite` and the executable with `tauri`. The processed web site is placed in `.\dist`. The exeutable is placed in `.\src-tauri\release` and the installers are placed in `.\src-tauri\target\release\bundle`.

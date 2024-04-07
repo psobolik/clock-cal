@@ -1,15 +1,76 @@
 import DateUtil from "./dateutil.ts";
 
+let g_clock: Clock | null = null;
+
 window.addEventListener("DOMContentLoaded", () => {
+  init();
+});
+
+let timeout = 0;
+window.addEventListener('resize', function () {
+  const delay = 50;
+
+  // Only resize some time after the last resize event
+  // https://web.archive.org/web/20220714020647/https://bencentra.com/code/2015/02/27/optimizing-window-resize.html
+  clearTimeout(timeout);
+  timeout = setTimeout(resize, delay);
+});
+
+function init() {
   let canvas = document.querySelector("#canvas") as HTMLCanvasElement;
-  let clock = new Clock(canvas);
+  g_clock = new Clock(canvas);
   run();
 
   function run() {
-    clock.render();
+    g_clock?.render();
     requestAnimationFrame(run);
   }
-});
+}
+
+function resize() {
+  const maxDim = 400;
+
+  if (g_clock) {
+    let dim = Math.max(maxDim, Math.min(window.innerWidth, window.innerHeight));
+    g_clock.canvas.width = g_clock.canvas.height = dim - 100;
+  }
+  init();
+}
+
+class Point {
+  x: number;
+  y: number;
+
+  constructor(x: number, y: number) {
+    this.x = x;
+    this.y = y;
+  }
+}
+
+class ClockHandPoints {
+  bottomRight: Point;
+  bottomLeft: Point;
+  middleRight: Point;
+  middleLeft: Point;
+  topRight: Point;
+  topLeft: Point;
+
+  constructor(
+    bottomRight: Point,
+    bottomLeft: Point,
+    middleRight: Point,
+    middleLeft: Point,
+    topRight: Point,
+    topLeft: Point
+  ) {
+    this.bottomRight = bottomRight;
+    this.bottomLeft = bottomLeft;
+    this.middleRight = middleRight;
+    this.middleLeft = middleLeft;
+    this.topRight = topRight;
+    this.topLeft = topLeft;
+  }
+}
 
 class Clock {
   canvasBorderColor = "#1122aa";
@@ -17,25 +78,19 @@ class Clock {
   monthDiskFill = "#eeeeff";
   monthBorderColor = "#2121ad";
   monthPipColor = "#000049";
-  monthBigPipSize = 2;
-  monthLittlePipSize = 1;
   monthHandFill = "#2121ad88";
   monthHandStroke = "#2121ad";
 
   dayDiskFill = "#ffeeee";
   dayBorderColor = "#540000";
   dayPipColor = "#540000";
-  dayBigPipSize = 3;
-  dayLittlePipSize = 2;
   dayHandFill = "#54000088";
   dayHandStroke = "#540000";
 
   clockDiskFill = "#ecedf1";
   clockNumeralFill = "#010a1a";
   clockLittlePipFill = "#aa4444";
-  clockLittlePipSize = 2;
   clockBigPipFill = "#ff4488";
-  clockBigPipSize = 4;
 
   secondHandColor = "#ff0000";
   minuteHandFill = "#125";
@@ -46,15 +101,23 @@ class Clock {
 
   circleInRadians = Math.PI * 2;
 
+  monthBigPipSize: number;
+  monthLittlePipSize: number;
+  dayBigPipSize: number;
+  dayLittlePipSize: number;
+  clockBigPipSize: number;
+  clockLittlePipSize: number;
+
+  borderSize: number;
+  dayFaceSize: number;
+  monthFaceSize: number;
+
   numeralFont: string;
   logoFont: string;
   monthFont: string;
   dayFont: string;
 
-  borderSize = 10;
-  dayFaceSize = 65;
-  monthFaceSize = 60;
-
+  canvas: HTMLCanvasElement;
   renderCtx: CanvasRenderingContext2D | null;
   canvasWidth: number;
   canvasHeight: number;
@@ -68,31 +131,92 @@ class Clock {
   pipRadius: number;
   numeralRadius: number;
 
-  constructor(canvas: HTMLCanvasElement) {
-    this.canvasWidth = canvas.width;
-    this.canvasHeight = canvas.height;
-    this.canvasCenterX = canvas.width / 2;
-    this.canvasCenterY = canvas.height / 2;
+  secondHandDiscSize: number;
+  secondHandPoints: ClockHandPoints;
+  minuteHandPoints: ClockHandPoints;
+  hourHandPoints: ClockHandPoints;
 
+  constructor(canvas: HTMLCanvasElement) {
+    this.canvas = canvas;
+
+    this.canvasWidth = this.canvas.width;
+    this.canvasHeight = this.canvas.height;
+    this.canvasCenterX = this.canvas.width / 2;
+    this.canvasCenterY = this.canvas.height / 2;
+
+    this.borderSize = (this.canvasHeight * 1.5) / 100;
     this.diameter = Math.min(this.canvasWidth, this.canvasHeight);
     this.canvasRadius = this.diameter / 2;
+
+    this.monthFaceSize = (this.canvasHeight * 10) / 100;
     this.monthRadius = this.canvasRadius - this.monthFaceSize;
+    this.monthBigPipSize = (this.canvasRadius * 0.95) / 100;
+    this.monthLittlePipSize = (this.canvasRadius * 0.25) / 100;
+
+    this.dayFaceSize = (this.canvasHeight * 10) / 100;
     this.dayRadius = this.monthRadius - this.dayFaceSize;
+    this.dayBigPipSize = (this.canvasRadius * 0.99) / 100;
+    this.dayLittlePipSize = (this.canvasRadius * 0.5) / 100;
+
     this.clockRadius = this.dayRadius;
     this.numeralRadius = (this.clockRadius * 78) / 100;
     this.pipRadius = (this.clockRadius * 55) / 100;
+    this.clockBigPipSize = (this.canvasRadius * .99) / 100;
+    this.clockLittlePipSize = (this.canvasRadius * .55) / 100;
+
+
+    const secondHandBottomHalfWidth = (this.clockRadius * 0.5) / 100;
+    const secondHandMiddleHalfWidth = secondHandBottomHalfWidth;
+    const secondHandMiddleLength = (this.clockRadius * 80) / 100;
+    const secondHandTopLength = (this.clockRadius * 90) / 100;
+    this.secondHandPoints = new ClockHandPoints(
+      new Point(secondHandBottomHalfWidth, 0),
+      new Point(-secondHandBottomHalfWidth, 0),
+      new Point(secondHandMiddleHalfWidth, -secondHandMiddleLength),
+      new Point(-secondHandMiddleHalfWidth, -secondHandMiddleLength),
+      new Point(0, -secondHandTopLength),
+      new Point(0, -secondHandTopLength)
+    )
+    this.secondHandDiscSize = (this.clockRadius * 4) / 100;
+
+    const minuteHandBottomHalfWidth = (this.clockRadius * 2) / 100;
+    const minuteHandMiddleHalfWidth = (this.clockRadius * 4) / 100;
+    const minuteHandMiddleLength = (this.clockRadius * 75) / 100;
+    const minuteHandTopLength = (this.clockRadius * 88) / 100;
+    this.minuteHandPoints = new ClockHandPoints(
+      new Point(minuteHandBottomHalfWidth, 0),
+      new Point(-minuteHandBottomHalfWidth, 0),
+      new Point(minuteHandMiddleHalfWidth, -minuteHandMiddleLength),
+      new Point(-minuteHandMiddleHalfWidth, -minuteHandMiddleLength),
+      new Point(0, -minuteHandTopLength),
+      new Point(0, -minuteHandTopLength),
+    )
+
+    const hourHandBottomHalfWidth = (this.clockRadius * 2) / 100;
+    const hourHandMiddleHalfWidth = (this.clockRadius * 5.5) / 100;
+    const hourHandMiddleLength = (this.clockRadius * 50) / 100;
+    const hourHandTopLength = (this.clockRadius * 65) / 100;
+    this.hourHandPoints = new ClockHandPoints(
+      new Point(hourHandBottomHalfWidth, 0),
+      new Point(-hourHandBottomHalfWidth, 0),
+      new Point(hourHandMiddleHalfWidth, -hourHandMiddleLength),
+      new Point(-hourHandMiddleHalfWidth, -hourHandMiddleLength),
+      new Point(0, -hourHandTopLength),
+      new Point(0, -hourHandTopLength)
+    )
 
     this.numeralFont = `${this.diameter / 14}pt Arial, sans-serif`;
     this.logoFont = `italic ${this.diameter / 32}pt "Brush Script MT", cursive`;
     this.dayFont = `bold ${this.diameter / 50}pt Arial, sans-serif`;
     this.monthFont = `bold ${this.diameter / 65}pt Arial, sans-serif`;
 
-    this.renderCtx = canvas.getContext("2d");
+    this.renderCtx = this.canvas.getContext("2d");
     if (this.renderCtx) this.renderCtx.translate(this.canvasCenterX, this.canvasCenterY);
   }
 
   render() {
     if (this.renderCtx != null) {
+      // this.clearCanvas(this.renderCtx);
       this.renderFace(this.renderCtx);
       // for (let day = 1; day <= 31; ++day) {
       //   let now = new Date(2000, 0, day);
@@ -191,26 +315,20 @@ class Clock {
     ctx.restore();
   }
 
-  renderClockHand(blx: number, by: number, tlx: number, ty: number, ty2: number, trx: number, brx: number, ctx: CanvasRenderingContext2D) {
+  renderClockHand(points: ClockHandPoints, ctx: CanvasRenderingContext2D) {
     ctx.beginPath();
-    ctx.moveTo(blx, by);
-    ctx.lineTo(tlx, ty);
-    ctx.lineTo(0, ty2)
-    ctx.lineTo(trx, ty);
-    ctx.lineTo(brx, by);
+    ctx.moveTo(points.bottomRight.x, points.bottomRight.y);
+    ctx.lineTo(points.middleRight.x, points.middleRight.y);
+    ctx.lineTo(points.topRight.x, points.topRight.y);
+    ctx.lineTo(points.topLeft.x, points.topLeft.y);
+    ctx.lineTo(points.middleLeft.x, points.middleLeft.y);
+    ctx.lineTo(points.bottomLeft.x, points.bottomLeft.y);
     ctx.closePath();
     ctx.fill();
     ctx.stroke();
   }
 
   renderSecondHand(time: Date, ctx: CanvasRenderingContext2D) {
-    const brx: number = 2;
-    const blx: number = -brx;
-    const by: number = 0;
-    const trx: number = 1;
-    const tlx: number = -trx;
-    const ty: number = -this.clockRadius + 15;
-
     const ticks = 60;
     const tick = time.getSeconds();
     const angle = (this.circleInRadians * tick) / ticks;
@@ -221,21 +339,13 @@ class Clock {
     ctx.strokeStyle = this.secondHandColor;
     ctx.rotate(angle);
 
-    this.renderClockHand(blx, by, tlx, ty, ty, trx, brx, ctx);
+    this.renderClockHand(this.secondHandPoints, ctx);
 
-    this.fillCircle(ctx, 0, 0, 10);
+    this.fillCircle(ctx, 0, 0, this.secondHandDiscSize);
     ctx.restore();
   }
 
   renderMinuteHand(time: Date, ctx: CanvasRenderingContext2D) {
-    const brx: number = 6;
-    const blx: number = -brx;
-    const by: number = 0;
-    const trx: number = 4;
-    const tlx: number = -trx;
-    const ty: number = -this.clockRadius + 60;
-    const ty2: number = ty - 25;
-
     const ticks = 3600; // 60 * 60
     const tick = time.getMinutes() * 60 + time.getSeconds();
     const angle = (this.circleInRadians * tick) / ticks;
@@ -247,20 +357,11 @@ class Clock {
 
     ctx.rotate(angle);
 
-    this.renderClockHand(blx, by, tlx, ty, ty2, trx, brx, ctx);
-
+    this.renderClockHand(this.minuteHandPoints, ctx);
     ctx.restore();
   }
 
   renderHourHand(time: Date, ctx: CanvasRenderingContext2D) {
-    const brx: number = 8;
-    const blx: number = -brx;
-    const by: number = 0;
-    const trx: number = 6;
-    const tlx: number = -trx;
-    const ty: number = -this.clockRadius + 115;
-    const ty2: number = ty - 25;
-
     const ticks = 720; // 12 * 60
     const tick = time.getHours() * 60 + time.getMinutes();
     const angle = (this.circleInRadians * tick) / ticks;
@@ -272,8 +373,7 @@ class Clock {
 
     ctx.rotate(angle);
 
-    this.renderClockHand(blx, by, tlx, ty, ty2, trx, brx, ctx);
-
+    this.renderClockHand(this.hourHandPoints, ctx);
     ctx.restore();
   }
 
@@ -338,12 +438,12 @@ class Clock {
         const angle = (this.circleInRadians * tick) / ticks;
         const xPip = pipDistance * Math.cos(angle);
         const yPip = pipDistance * Math.sin(angle);
-        const xLabel = labelDistance * Math.cos(angle);
-        const yLabel = labelDistance * Math.sin(angle);
 
         ctx.save();
         if (day == 0) {
           this.fillCircle(ctx, xPip, yPip, this.monthBigPipSize);
+          const xLabel = labelDistance * Math.cos(angle);
+          const yLabel = labelDistance * Math.sin(angle);
           ctx.translate(xLabel, yLabel);
           let label = months[month];
           if (month == 0) label += ` ${dateTime.getFullYear().toString()}`;
@@ -379,8 +479,6 @@ class Clock {
       const angle = (this.circleInRadians * tick) / ticks;
       const xPip = pipDistance * Math.cos(angle);
       const yPip = pipDistance * Math.sin(angle);
-      const xLabel = labelDistance * Math.cos(angle);
-      const yLabel = labelDistance * Math.sin(angle);
 
       ctx.save();
 
@@ -388,6 +486,8 @@ class Clock {
         this.fillCircle(ctx, xPip, yPip, this.dayLittlePipSize);
       } else {
         this.fillCircle(ctx, xPip, yPip, this.dayBigPipSize);
+        const xLabel = labelDistance * Math.cos(angle);
+        const yLabel = labelDistance * Math.sin(angle);
         ctx.translate(xLabel, yLabel);
         const date = Math.floor(n / 4) + 1;
         this.renderCentered(date.toString(), 0, 0);
@@ -454,7 +554,7 @@ class Clock {
 
     ctx.fillStyle = this.logoColor;
     ctx.font = this.logoFont;
-    this.renderCentered("psobolik", 0, -70);
+    this.renderCentered("psobolik", 0, (-this.clockRadius * 30) / 100);
 
     ctx.restore();
   }
