@@ -1,4 +1,8 @@
 import DateUtil from "./dateutil.ts";
+import Constants from "./constants.ts";
+import Helpers from "./helpers.ts";
+import SixPointPolygon from "./six-point-polygon.ts";
+import Point from "./point.ts";
 
 let g_clock: Clock | null = null;
 
@@ -37,70 +41,7 @@ function resize() {
   init();
 }
 
-class Point {
-  x: number;
-  y: number;
-
-  constructor(x: number, y: number) {
-    this.x = x;
-    this.y = y;
-  }
-}
-
-class ClockHandPoints {
-  bottomRight: Point;
-  bottomLeft: Point;
-  middleRight: Point;
-  middleLeft: Point;
-  topRight: Point;
-  topLeft: Point;
-
-  constructor(
-    bottomRight: Point,
-    bottomLeft: Point,
-    middleRight: Point,
-    middleLeft: Point,
-    topRight: Point,
-    topLeft: Point
-  ) {
-    this.bottomRight = bottomRight;
-    this.bottomLeft = bottomLeft;
-    this.middleRight = middleRight;
-    this.middleLeft = middleLeft;
-    this.topRight = topRight;
-    this.topLeft = topLeft;
-  }
-}
-
 class Clock {
-  canvasBorderColor = "#1122aa";
-
-  monthDiskFill = "#eeeeff";
-  monthBorderColor = "#2121ad";
-  monthPipColor = "#000049";
-  monthHandFill = "#2121ad88";
-  monthHandStroke = "#2121ad";
-
-  dayDiskFill = "#ffeeee";
-  dayBorderColor = "#540000";
-  dayPipColor = "#540000";
-  dayHandFill = "#54000088";
-  dayHandStroke = "#540000";
-
-  clockDiskFill = "#ecedf1";
-  clockNumeralFill = "#010a1a";
-  clockLittlePipFill = "#aa4444";
-  clockBigPipFill = "#ff4488";
-
-  secondHandColor = "#ff0000";
-  minuteHandFill = "#125";
-  minuteHandStroke = "#7b7bda";
-  hourHandFill = "#125"
-  hourHandStroke = "#7b7bda"
-  logoColor = "#012b69";
-
-  circleInRadians = Math.PI * 2;
-
   monthBigPipSize: number;
   monthLittlePipSize: number;
   dayBigPipSize: number;
@@ -125,16 +66,25 @@ class Clock {
   canvasCenterY: number;
   diameter: number;
   canvasRadius: number;
+
   monthRadius: number;
   dayRadius: number;
   clockRadius: number;
   pipRadius: number;
   numeralRadius: number;
 
+  monthHandLength: number;
+  monthHandWidth: number;
+  dayHandLength: number;
+  dayHandWidth: number;
+
   secondHandDiscSize: number;
-  secondHandPoints: ClockHandPoints;
-  minuteHandPoints: ClockHandPoints;
-  hourHandPoints: ClockHandPoints;
+  secondHand: SixPointPolygon;
+  minuteHand: SixPointPolygon;
+  hourHand: SixPointPolygon;
+
+  logo: string;
+  logoOffset: number;
 
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas;
@@ -144,32 +94,35 @@ class Clock {
     this.canvasCenterX = this.canvas.width / 2;
     this.canvasCenterY = this.canvas.height / 2;
 
-    this.borderSize = (this.canvasHeight * 1.5) / 100;
     this.diameter = Math.min(this.canvasWidth, this.canvasHeight);
     this.canvasRadius = this.diameter / 2;
+    this.borderSize = Helpers.percent(this.canvasWidth, 1.5);
 
-    this.monthFaceSize = (this.canvasHeight * 10) / 100;
+    this.monthFaceSize = Helpers.percent(this.canvasHeight, 10);
     this.monthRadius = this.canvasRadius - this.monthFaceSize;
-    this.monthBigPipSize = (this.canvasRadius * 0.95) / 100;
-    this.monthLittlePipSize = (this.canvasRadius * 0.25) / 100;
+    this.monthHandLength = Helpers.percent(this.canvasRadius - this.monthRadius, 75);
+    this.monthHandWidth = Helpers.percent(this.monthRadius, 3.5);
+    this.monthBigPipSize = Helpers.percent(this.canvasRadius, 0.95);
+    this.monthLittlePipSize = Helpers.percent(this.canvasRadius, 0.25);
 
-    this.dayFaceSize = (this.canvasHeight * 10) / 100;
+    this.dayFaceSize = Helpers.percent(this.canvasHeight, 10);
     this.dayRadius = this.monthRadius - this.dayFaceSize;
-    this.dayBigPipSize = (this.canvasRadius * 0.99) / 100;
-    this.dayLittlePipSize = (this.canvasRadius * 0.5) / 100;
+    this.dayHandLength = this.monthHandLength;
+    this.dayHandWidth = this.monthHandWidth;
+    this.dayBigPipSize = Helpers.percent(this.canvasRadius, 0.99);
+    this.dayLittlePipSize = Helpers.percent(this.canvasRadius, 0.5);
 
     this.clockRadius = this.dayRadius;
-    this.numeralRadius = (this.clockRadius * 78) / 100;
-    this.pipRadius = (this.clockRadius * 55) / 100;
-    this.clockBigPipSize = (this.canvasRadius * .99) / 100;
-    this.clockLittlePipSize = (this.canvasRadius * .55) / 100;
+    this.numeralRadius = Helpers.percent(this.clockRadius, 78);
+    this.pipRadius = Helpers.percent(this.clockRadius, 55);
+    this.clockBigPipSize = Helpers.percent(this.canvasRadius, .99);
+    this.clockLittlePipSize = Helpers.percent(this.canvasRadius, .55);
 
-
-    const secondHandBottomHalfWidth = (this.clockRadius * 0.5) / 100;
+    const secondHandBottomHalfWidth = Helpers.percent(this.clockRadius, 0.5);
     const secondHandMiddleHalfWidth = secondHandBottomHalfWidth;
-    const secondHandMiddleLength = (this.clockRadius * 80) / 100;
-    const secondHandTopLength = (this.clockRadius * 90) / 100;
-    this.secondHandPoints = new ClockHandPoints(
+    const secondHandMiddleLength = Helpers.percent(this.clockRadius, 80);
+    const secondHandTopLength = Helpers.percent(this.clockRadius, 90);
+    this.secondHand = new SixPointPolygon(
       new Point(secondHandBottomHalfWidth, 0),
       new Point(-secondHandBottomHalfWidth, 0),
       new Point(secondHandMiddleHalfWidth, -secondHandMiddleLength),
@@ -177,13 +130,13 @@ class Clock {
       new Point(0, -secondHandTopLength),
       new Point(0, -secondHandTopLength)
     )
-    this.secondHandDiscSize = (this.clockRadius * 4) / 100;
+    this.secondHandDiscSize = Helpers.percent(this.clockRadius, 4);
 
-    const minuteHandBottomHalfWidth = (this.clockRadius * 2) / 100;
-    const minuteHandMiddleHalfWidth = (this.clockRadius * 4) / 100;
-    const minuteHandMiddleLength = (this.clockRadius * 75) / 100;
-    const minuteHandTopLength = (this.clockRadius * 88) / 100;
-    this.minuteHandPoints = new ClockHandPoints(
+    const minuteHandBottomHalfWidth = Helpers.percent(this.clockRadius, 2);
+    const minuteHandMiddleHalfWidth = Helpers.percent(this.clockRadius, 4);
+    const minuteHandMiddleLength = Helpers.percent(this.clockRadius, 75);
+    const minuteHandTopLength = Helpers.percent(this.clockRadius, 88);
+    this.minuteHand = new SixPointPolygon(
       new Point(minuteHandBottomHalfWidth, 0),
       new Point(-minuteHandBottomHalfWidth, 0),
       new Point(minuteHandMiddleHalfWidth, -minuteHandMiddleLength),
@@ -192,11 +145,11 @@ class Clock {
       new Point(0, -minuteHandTopLength),
     )
 
-    const hourHandBottomHalfWidth = (this.clockRadius * 2) / 100;
-    const hourHandMiddleHalfWidth = (this.clockRadius * 5.5) / 100;
-    const hourHandMiddleLength = (this.clockRadius * 50) / 100;
-    const hourHandTopLength = (this.clockRadius * 65) / 100;
-    this.hourHandPoints = new ClockHandPoints(
+    const hourHandBottomHalfWidth = Helpers.percent(this.clockRadius, 2);
+    const hourHandMiddleHalfWidth = Helpers.percent(this.clockRadius, 5.5);
+    const hourHandMiddleLength = Helpers.percent(this.clockRadius, 50);
+    const hourHandTopLength = Helpers.percent(this.clockRadius, 65);
+    this.hourHand = new SixPointPolygon(
       new Point(hourHandBottomHalfWidth, 0),
       new Point(-hourHandBottomHalfWidth, 0),
       new Point(hourHandMiddleHalfWidth, -hourHandMiddleLength),
@@ -210,13 +163,21 @@ class Clock {
     this.dayFont = `bold ${this.diameter / 50}pt Arial, sans-serif`;
     this.monthFont = `bold ${this.diameter / 65}pt Arial, sans-serif`;
 
+    this.logo = "psobolik";
+    this.logoOffset = Helpers.percent(this.clockRadius, 30);
+
     this.renderCtx = this.canvas.getContext("2d");
-    if (this.renderCtx) this.renderCtx.translate(this.canvasCenterX, this.canvasCenterY);
+    if (this.renderCtx) {
+      this.renderCtx.translate(this.canvasCenterX, this.canvasCenterY);
+      if (Helpers.isAprilFirst()) {
+        this.renderCtx.rotate(Math.PI);
+        this.logo = "April Fool!";
+      }
+    }
   }
 
   render() {
     if (this.renderCtx != null) {
-      // this.clearCanvas(this.renderCtx);
       this.renderFace(this.renderCtx);
       // for (let day = 1; day <= 31; ++day) {
       //   let now = new Date(2000, 0, day);
@@ -249,131 +210,83 @@ class Clock {
     this.renderMonthFace(dateTime, ctx);
   }
 
-  renderCalendarHand(ctx: CanvasRenderingContext2D, x1: number, y1: number, x2: number, y2: number, x3: number, y3: number) {
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(x1, y1);
-    ctx.lineTo(x2, y2);
-    ctx.lineTo(x3, y3);
-    ctx.closePath();
-    ctx.fill();
-    ctx.stroke();
-  }
-
   renderMonthHand(dateTime: Date, ctx: CanvasRenderingContext2D) {
     const ticks = DateUtil.daysInYear(dateTime);
-    const adjust = DateUtil.daysInYearToDate(new Date(dateTime.getFullYear(), 3, 1));
-    const month = (DateUtil.daysInYearToDate(dateTime) - adjust) % ticks;
-    const angle = (this.circleInRadians * month) / ticks;
-
-    const bottom = this.monthRadius;
-    const bl_x = bottom * Math.cos(angle + .015);
-    const bl_y = bottom * Math.sin(angle + .015);
-    const br_x = bottom * Math.cos(angle - .015);
-    const br_y = bottom * Math.sin(angle - .015);
-
-    const top = bottom + ((this.monthFaceSize * 3) / 4);
-    const t_x = top * Math.cos(angle);
-    const t_y = top * Math.sin(angle);
+    const month = (DateUtil.daysInYearToDate(dateTime) - 1);
+    const angle = (Constants.threeHundredSixtyDegrees * month) / ticks;
 
     ctx.save();
 
-    ctx.fillStyle = this.monthHandFill;
-    ctx.strokeStyle = this.monthHandStroke;
+    ctx.fillStyle = Constants.monthHandFill;
+    ctx.strokeStyle = Constants.monthHandStroke;
+    ctx.rotate(angle);
 
-    this.renderCalendarHand(ctx, t_x, t_y, bl_x, bl_y, br_x, br_y);
-
+    Helpers.renderTriangle(this.monthRadius, this.monthHandWidth, this.monthHandLength, ctx);
     ctx.restore();
   }
 
   renderDayHand(dateTime: Date, ctx: CanvasRenderingContext2D) {
-    const hoursInDay = 24;
-    const ticks = DateUtil.daysInMonth(dateTime) * hoursInDay;
-    const adjust = ticks / 4;
-
-    let dateHour = ((dateTime.getDate() - 1) * hoursInDay) + dateTime.getHours();
-    dateHour = ((dateHour - adjust) % ticks);
-    const angle = (this.circleInRadians * dateHour) / ticks;
-
-    const bottom = this.dayRadius;
-    const bl_x = bottom * Math.cos(angle + .02);
-    const bl_y = bottom * Math.sin(angle + .02);
-    const br_x = bottom * Math.cos(angle - .02);
-    const br_y = bottom * Math.sin(angle - .02);
-
-    const top = bottom + ((this.dayFaceSize * 3) / 4);
-    const t_x = top * Math.cos(angle);
-    const t_y = top * Math.sin(angle);
+    const ticks = DateUtil.daysInMonth(dateTime) * Constants.hoursInDay;
+    const tick = ((dateTime.getDate() - 1) * Constants.hoursInDay) + dateTime.getHours();
+    const angle = (Constants.threeHundredSixtyDegrees * tick) / ticks;
 
     ctx.save();
 
-    ctx.fillStyle = this.dayHandFill;
-    ctx.strokeStyle = this.dayHandStroke;
+    ctx.fillStyle = Constants.dayHandFill;
+    ctx.strokeStyle = Constants.dayHandStroke;
+    ctx.rotate(angle);
 
-    this.renderCalendarHand(ctx, t_x, t_y, bl_x, bl_y, br_x, br_y);
+    Helpers.renderTriangle(this.dayRadius, this.monthHandWidth, this.monthHandLength, ctx);
 
     ctx.restore();
-  }
-
-  renderClockHand(points: ClockHandPoints, ctx: CanvasRenderingContext2D) {
-    ctx.beginPath();
-    ctx.moveTo(points.bottomRight.x, points.bottomRight.y);
-    ctx.lineTo(points.middleRight.x, points.middleRight.y);
-    ctx.lineTo(points.topRight.x, points.topRight.y);
-    ctx.lineTo(points.topLeft.x, points.topLeft.y);
-    ctx.lineTo(points.middleLeft.x, points.middleLeft.y);
-    ctx.lineTo(points.bottomLeft.x, points.bottomLeft.y);
-    ctx.closePath();
-    ctx.fill();
-    ctx.stroke();
   }
 
   renderSecondHand(time: Date, ctx: CanvasRenderingContext2D) {
     const ticks = 60;
     const tick = time.getSeconds();
-    const angle = (this.circleInRadians * tick) / ticks;
+    const angle = (Constants.threeHundredSixtyDegrees * tick) / ticks;
 
     ctx.save();
 
-    ctx.fillStyle = this.secondHandColor;
-    ctx.strokeStyle = this.secondHandColor;
+    ctx.fillStyle = Constants.secondHandColor;
+    ctx.strokeStyle = Constants.secondHandColor;
     ctx.rotate(angle);
 
-    this.renderClockHand(this.secondHandPoints, ctx);
+    this.secondHand.render(ctx);
 
-    this.fillCircle(ctx, 0, 0, this.secondHandDiscSize);
+    Helpers.fillCircle(0, 0, this.secondHandDiscSize, ctx);
     ctx.restore();
   }
 
   renderMinuteHand(time: Date, ctx: CanvasRenderingContext2D) {
-    const ticks = 3600; // 60 * 60
-    const tick = time.getMinutes() * 60 + time.getSeconds();
-    const angle = (this.circleInRadians * tick) / ticks;
+    const ticks = Constants.secondsInHour;
+    const tick = time.getMinutes() * Constants.secondsInMinute + time.getSeconds();
+    const angle = (Constants.threeHundredSixtyDegrees * tick) / ticks;
 
     ctx.save();
 
-    ctx.fillStyle = this.minuteHandFill;
-    ctx.strokeStyle = this.minuteHandStroke;
+    ctx.fillStyle = Constants.minuteHandFill;
+    ctx.strokeStyle = Constants.minuteHandStroke;
 
     ctx.rotate(angle);
 
-    this.renderClockHand(this.minuteHandPoints, ctx);
+    this.minuteHand.render(ctx);
     ctx.restore();
   }
 
   renderHourHand(time: Date, ctx: CanvasRenderingContext2D) {
     const ticks = 720; // 12 * 60
     const tick = time.getHours() * 60 + time.getMinutes();
-    const angle = (this.circleInRadians * tick) / ticks;
+    const angle = (Constants.threeHundredSixtyDegrees * tick) / ticks;
 
     ctx.save();
 
-    ctx.fillStyle = this.hourHandFill;
-    ctx.strokeStyle = this.hourHandStroke;
+    ctx.fillStyle = Constants.hourHandFill;
+    ctx.strokeStyle = Constants.hourHandStroke;
 
     ctx.rotate(angle);
 
-    this.renderClockHand(this.hourHandPoints, ctx);
+    this.hourHand.render(ctx);
     ctx.restore();
   }
 
@@ -385,18 +298,18 @@ class Clock {
   renderFace(ctx: CanvasRenderingContext2D) {
     ctx.save();
 
-    ctx.fillStyle = this.monthDiskFill;
-    this.fillCircle(ctx, 0, 0, this.canvasRadius);
+    ctx.fillStyle = Constants.monthDiskFill;
+    Helpers.fillCircle(0, 0, this.canvasRadius, ctx);
 
-    ctx.fillStyle = this.dayDiskFill;
-    this.fillCircle(ctx, 0, 0, this.monthRadius);
+    ctx.fillStyle = Constants.dayDiskFill;
+    Helpers.fillCircle(0, 0, this.monthRadius, ctx);
 
-    ctx.fillStyle = this.clockDiskFill;
-    this.fillCircle(ctx, 0, 0, this.dayRadius);
+    ctx.fillStyle = Constants.clockDiskFill;
+    Helpers.fillCircle(0, 0, this.dayRadius, ctx);
 
     ctx.lineWidth = this.borderSize;
-    ctx.strokeStyle = this.canvasBorderColor;
-    this.strokeCircle(ctx, 0, 0, this.canvasRadius - (this.borderSize / 2) + 1);
+    ctx.strokeStyle = Constants.canvasBorderColor;
+    Helpers.strokeCircle(0, 0, this.canvasRadius - (this.borderSize / 2) + 1, ctx);
 
     ctx.restore();
   }
@@ -418,38 +331,37 @@ class Clock {
       ticks += daysInMonth;
       daysPerMonth.push(daysInMonth);
     }
-    const adjust = DateUtil.daysInYearToDate(new Date(dateTime.getFullYear(), 3, 1));
     const labelDistance = (this.monthRadius + (this.monthFaceSize / 1.8));
     const pipDistance = (this.monthRadius + (this.monthFaceSize / 4.5));
 
     ctx.save();
 
     ctx.lineWidth = this.borderSize;
-    ctx.strokeStyle = this.monthBorderColor;
-    this.strokeCircle(ctx, 0, 0, this.monthRadius);
+    ctx.strokeStyle = Constants.monthBorderColor;
+    Helpers.strokeCircle(0, 0, this.monthRadius, ctx);
 
-    ctx.fillStyle = this.monthPipColor;
+    ctx.fillStyle = Constants.monthPipColor;
     ctx.font = this.monthFont;
 
     let dayOfYear = 0;
     for (let month = 0; month < months.length; ++month) {
       for (let day = 0; day < daysPerMonth[month]; ++day) {
-        const tick = (++dayOfYear - adjust) % ticks;
-        const angle = (this.circleInRadians * tick) / ticks;
+        const tick = dayOfYear++;
+        const angle = ((Constants.threeHundredSixtyDegrees * tick) / ticks) - Constants.ninetyDegrees;
         const xPip = pipDistance * Math.cos(angle);
         const yPip = pipDistance * Math.sin(angle);
 
         ctx.save();
         if (day == 0) {
-          this.fillCircle(ctx, xPip, yPip, this.monthBigPipSize);
+          Helpers.fillCircle(xPip, yPip, this.monthBigPipSize, ctx);
           const xLabel = labelDistance * Math.cos(angle);
           const yLabel = labelDistance * Math.sin(angle);
           ctx.translate(xLabel, yLabel);
           let label = months[month];
           if (month == 0) label += ` ${dateTime.getFullYear().toString()}`;
-          this.renderCentered(label, 0, 0);
+          Helpers.renderStringCentered(label, 0, 0, ctx);
         } else {
-          this.fillCircle(ctx, xPip, yPip, this.monthLittlePipSize);
+          Helpers.fillCircle(xPip, yPip, this.monthLittlePipSize, ctx);
         }
         ctx.restore();
       }
@@ -461,36 +373,34 @@ class Clock {
     const daysInCurrentMonth = DateUtil.daysInMonth(dateTime);
 
     const ticks = daysInCurrentMonth * 4;
-    const adjust = ticks / 4;
     const pipDistance = this.dayRadius + this.dayFaceSize / 3.5;
     const labelDistance = this.dayRadius + this.dayFaceSize / 1.6;
 
     ctx.save();
 
     ctx.lineWidth = this.borderSize;
-    ctx.strokeStyle = this.dayBorderColor;
-    this.strokeCircle(ctx, 0, 0, this.dayRadius);
+    ctx.strokeStyle = Constants.dayBorderColor;
+    Helpers.strokeCircle(0, 0, this.dayRadius, ctx);
 
-    ctx.fillStyle = this.dayPipColor;
+    ctx.fillStyle = Constants.dayPipColor;
     ctx.font = this.dayFont;
 
-    for (let n = 0; n < ticks; ++n) {
-      const tick = (n - adjust) % ticks;
-      const angle = (this.circleInRadians * tick) / ticks;
+    for (let tick = 0; tick < ticks; ++tick) {
+      const angle = (Constants.threeHundredSixtyDegrees * tick) / ticks - Constants.ninetyDegrees;
       const xPip = pipDistance * Math.cos(angle);
       const yPip = pipDistance * Math.sin(angle);
 
       ctx.save();
 
-      if (n % 4) {
-        this.fillCircle(ctx, xPip, yPip, this.dayLittlePipSize);
+      if (tick % 4) {
+        Helpers.fillCircle(xPip, yPip, this.dayLittlePipSize, ctx);
       } else {
-        this.fillCircle(ctx, xPip, yPip, this.dayBigPipSize);
+        Helpers.fillCircle(xPip, yPip, this.dayBigPipSize, ctx);
         const xLabel = labelDistance * Math.cos(angle);
         const yLabel = labelDistance * Math.sin(angle);
         ctx.translate(xLabel, yLabel);
-        const date = Math.floor(n / 4) + 1;
-        this.renderCentered(date.toString(), 0, 0);
+        const date = Math.floor(tick / 4) + 1;
+        Helpers.renderStringCentered(date, 0, 0, ctx);
       }
       ctx.restore();
     }
@@ -500,12 +410,11 @@ class Clock {
   renderClockPips(ctx: CanvasRenderingContext2D) {
     ctx.save();
 
-    ctx.fillStyle = this.clockBigPipFill;
+    ctx.fillStyle = Constants.clockBigPipFill;
 
-    const ticks = 60;
-    // No need to adjust
+    const ticks = Constants.minutesInHour;
     for (let n = 0; n < ticks; ++n) {
-      const angle = (this.circleInRadians * n) / ticks;
+      const angle = (Constants.threeHundredSixtyDegrees * n) / ticks;
       const x = this.pipRadius * Math.cos(angle);
       const y = this.pipRadius * Math.sin(angle);
 
@@ -513,38 +422,28 @@ class Clock {
       let pip_color;
       if (n % 5 == 0) {
         size = this.clockBigPipSize;
-        pip_color = this.clockBigPipFill;
+        pip_color = Constants.clockBigPipFill;
       } else {
         size = this.clockLittlePipSize;
-        pip_color = this.clockLittlePipFill;
+        pip_color = Constants.clockLittlePipFill;
       }
       ctx.fillStyle = pip_color;
-      this.fillCircle(ctx, x, y, size);
+      Helpers.fillCircle(x, y, size, ctx);
     }
     ctx.restore();
   }
 
-  renderCentered(value: string, x: number, y: number) {
-    if (this.renderCtx) {
-      const textMetrics = this.renderCtx.measureText(value);
-      const dx = -textMetrics.width / 2;
-      const dy = (textMetrics.actualBoundingBoxAscent + textMetrics.actualBoundingBoxDescent) / 2;
-      this.renderCtx.fillText(value, x + dx, y + dy);
-    }
-  }
-
   renderNumerals(ctx: CanvasRenderingContext2D) {
     ctx.save();
-    ctx.fillStyle = this.clockNumeralFill;
+    ctx.fillStyle = Constants.clockNumeralFill;
     ctx.font = this.numeralFont;
+
     const ticks = 12;
-    const adjust = (ticks / 4) - 1;
-    for (let n = 0; n < ticks; ++n) {
-      const tick = (n - adjust) % ticks;
-      const angle = (this.circleInRadians * tick) / ticks;
+    for (let tick = 1; tick <= ticks; ++tick) {
+      const angle = ((Constants.threeHundredSixtyDegrees * tick) / ticks) - Constants.ninetyDegrees;
       const x = this.numeralRadius * Math.cos(angle);
       const y = this.numeralRadius * Math.sin(angle);
-      this.renderCentered((n + 1).toString(), x, y);
+      Helpers.renderStringCentered(tick, x, y, ctx);
     }
     ctx.restore();
   }
@@ -552,22 +451,10 @@ class Clock {
   renderLogo(ctx: CanvasRenderingContext2D) {
     ctx.save();
 
-    ctx.fillStyle = this.logoColor;
+    ctx.fillStyle = Constants.logoColor;
     ctx.font = this.logoFont;
-    this.renderCentered("psobolik", 0, (-this.clockRadius * 30) / 100);
+    Helpers.renderStringCentered(this.logo, 0, -this.logoOffset, ctx);
 
     ctx.restore();
-  }
-
-  strokeCircle(ctx: CanvasRenderingContext2D, x: number, y: number, size: number) {
-    ctx.beginPath();
-    ctx.arc(x, y, size, 0, this.circleInRadians);
-    ctx.stroke();
-  }
-
-  fillCircle(ctx: CanvasRenderingContext2D, x: number, y: number, size: number) {
-    ctx.beginPath();
-    ctx.arc(x, y, size, 0, this.circleInRadians);
-    ctx.fill();
   }
 }
