@@ -6,14 +6,6 @@
 import Constants from "./constants.ts";
 
 export default class Helpers {
-  // static renderStringCentered(value: string, x: number, y: number, ctx: CanvasRenderingContext2D) {
-  //   if (ctx) {
-  //     const textMetrics = ctx.measureText(value);
-  //     const dx = -textMetrics.width / 2;
-  //     const dy = (textMetrics.actualBoundingBoxAscent + textMetrics.actualBoundingBoxDescent) / 2;
-  //     ctx.fillText(value, x + dx, y + dy);
-  //   }
-  // }
   static renderStringCentered(value: any, x: number, y: number, ctx: CanvasRenderingContext2D) {
     if (ctx) {
       const textMetrics = ctx.measureText(value);
@@ -41,6 +33,7 @@ export default class Helpers {
 
     ctx.save();
 
+    ctx.lineWidth = 2;
     ctx.beginPath();
 
     ctx.moveTo(0, -(bottom + height));

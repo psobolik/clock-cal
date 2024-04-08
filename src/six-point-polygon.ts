@@ -31,6 +31,7 @@ export default class SixPointPolygon {
 
   render(ctx: CanvasRenderingContext2D) {
     ctx.beginPath();
+    ctx.lineWidth = 2;
     ctx.moveTo(this.bottomRight.x, this.bottomRight.y);
     ctx.lineTo(this.middleRight.x, this.middleRight.y);
     ctx.lineTo(this.topRight.x, this.topRight.y);

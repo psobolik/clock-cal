@@ -42,6 +42,8 @@ function resize() {
 }
 
 class Clock {
+  weekBigPipSize: number;
+  weekLittlePipSize: number;
   monthBigPipSize: number;
   monthLittlePipSize: number;
   dayBigPipSize: number;
@@ -52,11 +54,13 @@ class Clock {
   borderSize: number;
   dayFaceSize: number;
   monthFaceSize: number;
+  weekFaceSize: number;
 
   numeralFont: string;
   logoFont: string;
   monthFont: string;
   dayFont: string;
+  weekFont: string;
 
   canvas: HTMLCanvasElement;
   renderCtx: CanvasRenderingContext2D | null;
@@ -69,10 +73,13 @@ class Clock {
 
   monthRadius: number;
   dayRadius: number;
+  weekRadius: number;
   clockRadius: number;
-  pipRadius: number;
+  clockPipRadius: number;
   numeralRadius: number;
 
+  weekHandWidth: number;
+  weekHandHeight: number;
   monthHandLength: number;
   monthHandWidth: number;
   dayHandLength: number;
@@ -96,25 +103,32 @@ class Clock {
 
     this.diameter = Math.min(this.canvasWidth, this.canvasHeight);
     this.canvasRadius = this.diameter / 2;
-    this.borderSize = Helpers.percent(this.canvasWidth, 1.5);
+    this.borderSize = Helpers.percent(this.canvasWidth, .8);
 
-    this.monthFaceSize = Helpers.percent(this.canvasHeight, 10);
+    this.monthFaceSize = Helpers.percent(this.canvasHeight, 9);
     this.monthRadius = this.canvasRadius - this.monthFaceSize;
     this.monthHandLength = Helpers.percent(this.canvasRadius - this.monthRadius, 75);
     this.monthHandWidth = Helpers.percent(this.monthRadius, 3.5);
     this.monthBigPipSize = Helpers.percent(this.canvasRadius, 0.95);
     this.monthLittlePipSize = Helpers.percent(this.canvasRadius, 0.25);
 
-    this.dayFaceSize = Helpers.percent(this.canvasHeight, 10);
+    this.dayFaceSize = Helpers.percent(this.canvasHeight, 9);
     this.dayRadius = this.monthRadius - this.dayFaceSize;
     this.dayHandLength = this.monthHandLength;
     this.dayHandWidth = this.monthHandWidth;
     this.dayBigPipSize = Helpers.percent(this.canvasRadius, 0.99);
     this.dayLittlePipSize = Helpers.percent(this.canvasRadius, 0.5);
 
-    this.clockRadius = this.dayRadius;
+    this.weekFaceSize = Helpers.percent(this.canvasHeight, 8.5);
+    this.weekRadius = this.dayRadius - this.weekFaceSize;
+    this.weekHandWidth = this.monthHandWidth;
+    this.weekHandHeight = this.monthHandLength;
+    this.weekBigPipSize = Helpers.percent(this.canvasRadius, 0.99);
+    this.weekLittlePipSize = Helpers.percent(this.canvasRadius, 0.5);
+
+    this.clockRadius = this.weekRadius;
     this.numeralRadius = Helpers.percent(this.clockRadius, 78);
-    this.pipRadius = Helpers.percent(this.clockRadius, 55);
+    this.clockPipRadius = Helpers.percent(this.clockRadius, 55);
     this.clockBigPipSize = Helpers.percent(this.canvasRadius, .99);
     this.clockLittlePipSize = Helpers.percent(this.canvasRadius, .55);
 
@@ -158,13 +172,14 @@ class Clock {
       new Point(0, -hourHandTopLength)
     )
 
-    this.numeralFont = `${this.diameter / 14}pt Arial, sans-serif`;
+    this.numeralFont = `${this.diameter / 18}pt Arial, sans-serif`;
     this.logoFont = `italic ${this.diameter / 32}pt "Brush Script MT", cursive`;
     this.dayFont = `bold ${this.diameter / 50}pt Arial, sans-serif`;
     this.monthFont = `bold ${this.diameter / 65}pt Arial, sans-serif`;
+    this.weekFont = `bold ${this.diameter / 65}pt Arial, sans-serif`;
 
     this.logo = "psobolik";
-    this.logoOffset = Helpers.percent(this.clockRadius, 30);
+    this.logoOffset = Helpers.percent(this.clockRadius, 25);
 
     this.renderCtx = this.canvas.getContext("2d");
     if (this.renderCtx) {
@@ -204,6 +219,8 @@ class Clock {
   }
 
   renderCalendar(dateTime: Date, ctx: CanvasRenderingContext2D) {
+    this.renderWeekHand(dateTime, ctx);
+    this.renderWeekFace(dateTime, ctx);
     this.renderDayHand(dateTime, ctx);
     this.renderDayFace(dateTime, ctx);
     this.renderMonthHand(dateTime, ctx);
@@ -222,6 +239,21 @@ class Clock {
     ctx.rotate(angle);
 
     Helpers.renderTriangle(this.monthRadius, this.monthHandWidth, this.monthHandLength, ctx);
+    ctx.restore();
+  }
+
+  renderWeekHand(dateTime: Date, ctx: CanvasRenderingContext2D) {
+    const ticks = Constants.hoursInWeek;
+    const tick = (dateTime.getDay() * Constants.hoursInDay) + dateTime.getHours();
+    const angle = (Constants.threeHundredSixtyDegrees * tick) / ticks;
+
+    ctx.save();
+
+    ctx.fillStyle = Constants.weekHandFill;
+    ctx.strokeStyle = Constants.weekHandStroke;
+    ctx.rotate(angle);
+
+    Helpers.renderTriangle(this.weekRadius, this.weekHandWidth, this.weekHandHeight, ctx);
     ctx.restore();
   }
 
@@ -275,7 +307,7 @@ class Clock {
   }
 
   renderHourHand(time: Date, ctx: CanvasRenderingContext2D) {
-    const ticks = 720; // 12 * 60
+    const ticks = Constants.hoursOnClock * Constants.minutesInHour;
     const tick = time.getHours() * 60 + time.getMinutes();
     const angle = (Constants.threeHundredSixtyDegrees * tick) / ticks;
 
@@ -304,8 +336,11 @@ class Clock {
     ctx.fillStyle = Constants.dayDiskFill;
     Helpers.fillCircle(0, 0, this.monthRadius, ctx);
 
-    ctx.fillStyle = Constants.clockDiskFill;
+    ctx.fillStyle = Constants.weekDiskFill;
     Helpers.fillCircle(0, 0, this.dayRadius, ctx);
+
+    ctx.fillStyle = Constants.clockDiskFill;
+    Helpers.fillCircle(0, 0, this.clockRadius, ctx);
 
     ctx.lineWidth = this.borderSize;
     ctx.strokeStyle = Constants.canvasBorderColor;
@@ -369,6 +404,43 @@ class Clock {
     ctx.restore();
   }
 
+  renderWeekFace(_dateTime: Date, ctx: CanvasRenderingContext2D) {
+    const days = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
+
+    const ticks = days.length * Constants.hoursInDay;
+    const pipDistance = (this.weekRadius + (this.weekFaceSize / 4.5));
+    const labelDistance = (this.weekRadius + (this.weekFaceSize / 1.8));
+
+    ctx.save();
+
+    ctx.lineWidth = this.borderSize;
+    ctx.strokeStyle = Constants.weekBorderColor;
+    Helpers.strokeCircle(0, 0, this.weekRadius, ctx);
+
+    ctx.fillStyle = Constants.weekPipColor;
+    ctx.font = this.weekFont;
+
+    for (let tick = 0; tick < ticks; ++tick) {
+      const angle = (Constants.threeHundredSixtyDegrees * tick) / ticks - Constants.ninetyDegrees;
+      const xPip = pipDistance * Math.cos(angle);
+      const yPip = pipDistance * Math.sin(angle);
+
+      ctx.save();
+
+      let pipSize = tick % Constants.hoursInDay ? this.weekLittlePipSize : this.weekBigPipSize;
+      Helpers.fillCircle(xPip, yPip, pipSize, ctx);
+      if (tick % Constants.hoursInDay == 0) {
+        const xLabel = labelDistance * Math.cos(angle);
+        const yLabel = labelDistance * Math.sin(angle);
+        ctx.translate(xLabel, yLabel);
+        const dow = days[Math.floor(tick / Constants.hoursInDay)];
+        Helpers.renderStringCentered(dow, 0, 0, ctx);
+      }
+      ctx.restore();
+    }
+    ctx.restore();
+  }
+
   renderDayFace(dateTime: Date, ctx: CanvasRenderingContext2D) {
     const daysInCurrentMonth = DateUtil.daysInMonth(dateTime);
 
@@ -415,8 +487,8 @@ class Clock {
     const ticks = Constants.minutesInHour;
     for (let n = 0; n < ticks; ++n) {
       const angle = (Constants.threeHundredSixtyDegrees * n) / ticks;
-      const x = this.pipRadius * Math.cos(angle);
-      const y = this.pipRadius * Math.sin(angle);
+      const x = this.clockPipRadius * Math.cos(angle);
+      const y = this.clockPipRadius * Math.sin(angle);
 
       let size;
       let pip_color;
@@ -438,7 +510,7 @@ class Clock {
     ctx.fillStyle = Constants.clockNumeralFill;
     ctx.font = this.numeralFont;
 
-    const ticks = 12;
+    const ticks = Constants.hoursOnClock;
     for (let tick = 1; tick <= ticks; ++tick) {
       const angle = ((Constants.threeHundredSixtyDegrees * tick) / ticks) - Constants.ninetyDegrees;
       const x = this.numeralRadius * Math.cos(angle);

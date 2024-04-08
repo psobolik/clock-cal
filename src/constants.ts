@@ -7,11 +7,21 @@ export default class Constants {
   static ninetyDegrees = Math.PI / 2;
 
   static hoursInDay = 24;
+  static hoursOnClock = Constants.hoursInDay / 2;
+  static daysInWeek = 7;
+  static hoursInWeek = Constants.hoursInDay * Constants.daysInWeek;
   static minutesInHour = 60;
   static secondsInMinute = 60;
   static secondsInHour = Constants.secondsInMinute * Constants.minutesInHour;
 
   static canvasBorderColor = "#1122aa";
+
+  static weekDiskFill = "#eeffee";
+  static weekBorderColor = "#068d06";
+  static weekPipColor = "#004900";
+  static weekHandFill = "#00490088";
+  static weekHandStroke = "#004900";
+
   static monthDiskFill = "#eeeeff";
   static monthBorderColor = "#2121ad";
   static monthPipColor = "#000049";
@@ -24,15 +34,15 @@ export default class Constants {
   static dayHandFill = "#54000088";
   static dayHandStroke = "#540000";
 
-  static clockDiskFill = "#ecedf1";
+  static clockDiskFill = "#ffffef";
   static clockNumeralFill = "#010a1a";
-  static clockLittlePipFill = "#aa4444";
-  static clockBigPipFill = "#ff4488";
+  static clockLittlePipFill = "#aaaa00";
+  static clockBigPipFill = "#888800";
 
   static secondHandColor = "#ff0000";
-  static minuteHandFill = "#125";
-  static minuteHandStroke = "#7b7bda";
-  static hourHandFill = "#125"
-  static hourHandStroke = "#7b7bda"
-  static logoColor = "#012b69";
+  static minuteHandFill = "#404000";
+  static minuteHandStroke = "#101000";
+  static hourHandFill = "#404000"
+  static hourHandStroke = "#101000"
+  static logoColor = "#555501";
 }
