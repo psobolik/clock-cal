@@ -25,9 +25,8 @@ window.addEventListener('resize', function () {
   function resize() {
     const maxDim = 400;
 
-    let dim = Math.max(maxDim, Math.min(window.innerWidth, window.innerHeight));
     if (g_app) {
-      g_app.setSize(dim - 100);
+      g_app.setSize(Math.max(maxDim, Math.min(window.innerWidth, window.innerHeight)));
     }
   }
 });

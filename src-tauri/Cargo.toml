@@ -1,6 +1,6 @@
 [package]
 name = "clock-cal"
-version = "0.3.0"
+version = "0.3.1"
 description = "An analog clock & calendar"
 authors = ["Paul Sobolik <psobolik@zoho.com>"]
 license = "MIT"
@@ -12,7 +12,7 @@ edition = "2021"
 tauri-build = { version = "1", features = [] }
 
 [dependencies]
-tauri = { version = "1", features = ["shell-open"] }
+tauri = { version = "1", features = [] }
 
 [features]
 # This feature is used for production builds or when a dev server is not specified, DO NOT REMOVE!!

@@ -19,10 +19,11 @@ export default class App {
     this.calendar = new Calendar();
     this.clock = new Clock();
 
-    this.setSize(canvas.width);
+    this.setSize(Math.min(canvas.width, canvas.height));
   }
 
   public setSize(size: number) {
+    size -= 100;
     this.canvas.width = this.canvas.height = size;
 
     this.calendar.setSize(size);
