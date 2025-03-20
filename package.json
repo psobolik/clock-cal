@@ -16,12 +16,12 @@
     "tauri": "tauri"
   },
   "dependencies": {
-    "@tauri-apps/api": "^1.5.3"
+    "@tauri-apps/api": "^1.6.0"
   },
   "devDependencies": {
-    "@tauri-apps/cli": "^1.5.11",
-    "typescript": "^5.4.3",
-    "vite": "^5.2.6"
+    "@tauri-apps/cli": "^1.6.3",
+    "typescript": "^5.8.2",
+    "vite": "^5.4.14"
   },
   "packageManager": "pnpm@8.15.5+sha256.4b4efa12490e5055d59b9b9fc9438b7d581a6b7af3b5675eb5c5f447cee1a589"
 }

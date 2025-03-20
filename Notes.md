@@ -14,16 +14,16 @@ Template created! To get started run:
   pnpm tauri dev
 ```
 ## Develop
-```
-> pnpm tauri dev
+```shell
+$ pnpm tauri dev
 ```
 Except to run the app on the desktop, this program doesn't use Rust at all, so it can also be run as a web page: 
+```shell
+$ pnpm dev
 ```
-> pnpm dev
-```
-## Deploy
-```
-> pnpm tauri build
+## Deploy for the desktop
+```shell
+$ pnpm tauri build
 ```
 This command compiles the TypeScript source and bundles the website with `vite` and builds the executable and installers with `tauri`. 
 
@@ -35,3 +35,14 @@ On macOS, the DMG will be in `./src-tauri/target/release/bundle/dmg` and the bun
 
 On Linux, the installers will be in `./src-tauri/target/release/appimage` and `./src-tauri/target/release/deb`. 
 
+## Deploy as a web page
+### pop-os
+```shell
+$ pnpm build --base=/clock --outDir=dist/clock
+$ sudo rsync --recursive --mkpath --delete ./dist/clock/ /var/www/html/clock/
+```
+### tilde.team
+```shell
+$ pnpm build --base=/~padeso/clock-cal --outDir=dist/tilde.team
+$ rsync --recursive --mkpath --delete ./dist/tilde.team/ tilde.team:~/public_html/clock-cal/
+```
